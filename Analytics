@@ -1,0 +1,69 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov 16 02:04:24 2017
+
+@author: admin1
+"""
+
+#%%
+import argparse
+
+from apiclient.discovery import build
+from oauth2client.service_account import ServiceAccountCredentials
+
+import httplib2
+from oauth2client import client
+from oauth2client import file
+from oauth2client import tools
+
+# Импорт библиотек
+import pandas as pd
+import numpy as np
+from collections import OrderedDict
+from datetime import date
+
+# Экспорт в Excell
+import xlwt
+import openpyxl
+
+from openpyxl import Workbook
+from openpyxl.compat import range
+from openpyxl.utils import get_column_letter
+#%%
+# Получение данных мз Analytics
+def get_service(api_name, api_version, service_account_email):
+ scopes = ['https://www.googleapis.com/auth/analytics.readonly']
+ credentials = ServiceAccountCredentials.from_json_keyfile_name('Analyticsreport-b34c10badac8.json', scopes=scopes)
+ http = credentials.authorize(httplib2.Http())
+ service = build(api_name, api_version, http=http)
+ return service
+
+def get_results(service, profile_id):
+
+  # Параметры отчета в Google Analytics
+  return service.data().ga().get(
+    ids='ga:' + profile_id,
+    start_date='2017-09-01',
+    end_date='2017-11-23',
+    metrics = 'ga:transactionRevenue, ga:transactions',
+    dimensions = 'ga:date, ga:transactionid',
+    max_results='50000').execute()
+  
+
+result = get_results(get_service('analytics', 'v3', 'r-analytics@cobalt-alliance-486.iam.gserviceaccount.com'), '')
+
+row = result['rows']
+#%%
+wb = Workbook()
+ws1 = wb.create_sheet(title="Data")
+
+excel_y = 1
+
+for key in row:
+    excel_x = 1
+    for l_key in key:
+        _ = ws1.cell(column=excel_x, row=excel_y, value=l_key)
+        excel_x = excel_x  + 1
+    excel_y = excel_y + 1
+
+wb.save('03 SLR transaction.xlsx')
